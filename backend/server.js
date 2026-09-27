@@ -34,7 +34,7 @@ if (process.env.NODE_ENV === 'production') {
   // Serve index.html for all non-API routes (for client-side routing)
   app.get('*', (req, res, next) => {
     if (!req.path.startsWith('/api/')) {
-      console.log(`[Static Files] Serving index.html for: ${req.path}`);
+      console.log(`[Static Files] Serving index.html for client-side route: ${req.path}`);
       res.sendFile(path.join(frontendDistPath, 'index.html'));
     } else {
       next();
@@ -430,9 +430,10 @@ initDatabase()
     app.listen(PORT, () => {
       console.log(`===============================================`);
       console.log(`  ScrubSafe Backend running on port ${PORT}`);
-      console.log(`  API Health: http://localhost:${PORT}/api/health`);
-      console.log(`  Stats:      http://localhost:${PORT}/api/stats`);
-      console.log(`  Radar:      http://localhost:${PORT}/api/community-risk`);
+      console.log(`  Local API Health: http://localhost:${PORT}/api/health`);
+      console.log(`  Local Stats:      http://localhost:${PORT}/api/stats`);
+      console.log(`  Local Radar:      http://localhost:${PORT}/api/community-risk`);
+      console.log(`  (Replace localhost with your domain for public access)`);
       console.log(`===============================================`);
     });
   })
