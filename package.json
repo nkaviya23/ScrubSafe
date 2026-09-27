@@ -1,0 +1,21 @@
+{
+  "name": "scrubsafe",
+  "version": "1.0.0",
+  "description": "ScrubSafe – Scrub Typhus Early Warning & Community Risk Radar",
+  "scripts": {
+    "start": "node start-all.js",
+    "backend": "npm start --prefix backend",
+    "frontend": "npm run dev --prefix frontend",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "build": "npm run build --prefix frontend"
+  },
+  "keywords": [
+    "scrub-typhus",
+    "early-warning",
+    "public-health",
+    "epidemiology",
+    "risk-radar"
+  ],
+  "author": "ScrubSafe Health Initiative",
+  "license": "MIT"
+}
