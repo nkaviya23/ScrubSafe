@@ -336,10 +336,14 @@ async function initDatabase() {
   }
 }
 
+// Initialize database automatically when this module loads
+initDatabase().catch((err) => {
+  console.error('[DB Startup Error]', err);
+});
+
 module.exports = {
   db,
   dbRun,
   dbAll,
-  dbGet,
-  initDatabase
+  dbGet
 };

@@ -7,8 +7,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const db = require('./db');
-
-const initDatabase = db.initDatabase;
 const dbRun = db.dbRun;
 const dbAll = db.dbAll;
 const dbGet = db.dbGet;
@@ -431,19 +429,6 @@ app.use((err, req, res, next) => {
 });
 
 // Start Express server after DB initialization
-initDatabase()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`===============================================`);
-      console.log(`  ScrubSafe Backend running on port ${PORT}`);
-      console.log(`  Local API Health: http://localhost:${PORT}/api/health`);
-      console.log(`  Local Stats:      http://localhost:${PORT}/api/stats`);
-      console.log(`  Local Radar:      http://localhost:${PORT}/api/community-risk`);
-      console.log(`  (Replace localhost with your domain for public access)`);
-      console.log(`===============================================`);
-    });
-  })
-  .catch(err => {
-    console.error('[Server Startup Error]', err);
-    process.exit(1);
-  });
+app.listen(PORT, () => {
+  console.log(`[Server] Running on port ${PORT}`);
+});
