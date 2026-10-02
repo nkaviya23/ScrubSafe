@@ -6,36 +6,7 @@
 require('dotenv').config();
 const express = require('express'); // ScrubSafe API
 const cors = require('cors');
-const db = require('./db');
-const sqliteDb = db.db;
-
-const dbRun = (sql, params = []) =>
-  new Promise((resolve, reject) => {
-    sqliteDb.run(sql, params, function (err) {
-      if (err) return reject(err);
-      resolve({
-        lastID: this.lastID,
-        changes: this.changes
-      });
-    });
-  });
-
-const dbGet = (sql, params = []) =>
-  new Promise((resolve, reject) => {
-    sqliteDb.get(sql, params, (err, row) => {
-      if (err) return reject(err);
-      resolve(row);
-    });
-  });
-
-const dbAll = (sql, params = []) =>
-  new Promise((resolve, reject) => {
-    sqliteDb.all(sql, params, (err, rows) => {
-      if (err) return reject(err);
-      resolve(rows);
-    });
-  });
-
+const { dbRun, dbGet, dbAll } = require('./db');
 const { calculateRisk } = require('./riskEngine');
 const { analyzeCommunityClusters } = require('./clusterRadar');
 

@@ -1,43 +1,98 @@
 /**
- * ScrubSafe SQLite Database Service
- * 
- * Auto-initializes SQLite database in /database/scrubsafe.db
- * Creates schema and indexes.
- * Supports area reports (without GPS coordinates) and precise GPS reports.
- * Seeds initial demo data on first startup if table is empty.
+ * ScrubSafe Database Service
+ *
+ * Local development:
+ *   SQLite -> database/scrubsafe.db
+ *
+ * Vercel production:
+ *   Turso/libSQL
  */
 
-const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-const DB_DIR = path.resolve(__dirname, '../database');
-const DB_PATH = process.env.DB_PATH || path.join(DB_DIR, 'scrubsafe.db');
+const USE_TURSO =
+  !!process.env.TURSO_DATABASE_URL &&
+  !!process.env.TURSO_AUTH_TOKEN;
 
-// Ensure database directory exists
-if (!fs.existsSync(DB_DIR)) {
-  fs.mkdirSync(DB_DIR, { recursive: true });
+let db = null;
+
+if (USE_TURSO) {
+  const { createClient } = require('@libsql/client');
+
+  db = createClient({
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN
+  });
+
+  console.log('[DB] Using Turso/libSQL database.');
+} else {
+  const sqlite3 = require('sqlite3').verbose();
+
+  const DB_DIR = path.resolve(__dirname, '../database');
+  const DB_PATH =
+    process.env.DB_PATH || path.join(DB_DIR, 'scrubsafe.db');
+
+  if (!fs.existsSync(DB_DIR)) {
+    fs.mkdirSync(DB_DIR, { recursive: true });
+  }
+
+  db = new sqlite3.Database(DB_PATH, (err) => {
+    if (err) {
+      console.error(
+        '[DB Error] Failed to connect to SQLite:',
+        err.message
+      );
+    } else {
+      console.log(`[DB] Connected to SQLite database at: ${DB_PATH}`);
+    }
+  });
 }
 
-const db = new sqlite3.Database(DB_PATH, (err) => {
-  if (err) {
-    console.error('[DB Error] Failed to connect to SQLite:', err.message);
-  } else {
-    console.log(`[DB] Connected to SQLite database at: ${DB_PATH}`);
-  }
-});
+/**
+ * Execute INSERT / UPDATE / DELETE / CREATE / ALTER statements.
+ */
+const dbRun = async (sql, params = []) => {
+  if (USE_TURSO) {
+    const result = await db.execute({
+      sql,
+      args: params
+    });
 
-// Promisified helper methods
-const dbRun = (sql, params = []) => {
+    return {
+      lastID: result.lastInsertRowid
+        ? Number(result.lastInsertRowid)
+        : undefined,
+      changes: result.rowsAffected || 0
+    };
+  }
+
   return new Promise((resolve, reject) => {
     db.run(sql, params, function (err) {
       if (err) reject(err);
-      else resolve(this);
+      else {
+        resolve({
+          lastID: this.lastID,
+          changes: this.changes
+        });
+      }
     });
   });
 };
 
-const dbAll = (sql, params = []) => {
+/**
+ * Return all rows.
+ */
+const dbAll = async (sql, params = []) => {
+  if (USE_TURSO) {
+    const result = await db.execute({
+      sql,
+      args: params
+    });
+
+    return result.rows;
+  }
+
   return new Promise((resolve, reject) => {
     db.all(sql, params, (err, rows) => {
       if (err) reject(err);
@@ -46,7 +101,19 @@ const dbAll = (sql, params = []) => {
   });
 };
 
-const dbGet = (sql, params = []) => {
+/**
+ * Return one row.
+ */
+const dbGet = async (sql, params = []) => {
+  if (USE_TURSO) {
+    const result = await db.execute({
+      sql,
+      args: params
+    });
+
+    return result.rows[0];
+  }
+
   return new Promise((resolve, reject) => {
     db.get(sql, params, (err, row) => {
       if (err) reject(err);
