@@ -14,7 +14,7 @@ const dbGet = db.dbGet;
 const { calculateRisk } = require('./riskEngine');
 const { analyzeCommunityClusters } = require('./clusterRadar');
 
-const app = express();
+const express = require('express'); // ScrubSafe API
 const PORT = process.env.PORT || 5000;
 	console.log(`[Server] NODE_ENV: ${process.env.NODE_ENV}`);
 	console.log(`[Server] PORT: ${PORT}`);
