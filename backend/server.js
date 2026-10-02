@@ -4,7 +4,7 @@
  */
 
 require('dotenv').config();
-const express = require('express');
+const express = require('express'); // ScrubSafe API
 const cors = require('cors');
 const db = require('./db');
 const dbRun = db.dbRun;
@@ -14,7 +14,7 @@ const dbGet = db.dbGet;
 const { calculateRisk } = require('./riskEngine');
 const { analyzeCommunityClusters } = require('./clusterRadar');
 
-const express = require('express'); // ScrubSafe API
+const app = express();
 const PORT = process.env.PORT || 5000;
 	console.log(`[Server] NODE_ENV: ${process.env.NODE_ENV}`);
 	console.log(`[Server] PORT: ${PORT}`);
