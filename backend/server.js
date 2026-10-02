@@ -6,7 +6,13 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { initDatabase, dbRun, dbAll, dbGet } = require('./db');
+const db = require('./db');
+
+const initDatabase = db.initDatabase;
+const dbRun = db.dbRun;
+const dbAll = db.dbAll;
+const dbGet = db.dbGet;
+
 const { calculateRisk } = require('./riskEngine');
 const { analyzeCommunityClusters } = require('./clusterRadar');
 
