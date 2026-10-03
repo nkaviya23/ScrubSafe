@@ -87,6 +87,34 @@ export default function CommunityRadarView({ radarData, onRefreshRadar, setActiv
               <div className="radar-dot" style={{ top: '55%', left: '54%' }} />
             </>
           )}
+
+          {/* Dots for recent area reports */}
+          {(() => {
+            const areaReports = (radarData?.recentReports || [])
+              .filter(r => r.locationPrecision === 'area')
+              .slice(0, 8);
+
+            const total = areaReports.length || 1;
+
+            return areaReports.map((report, idx) => {
+              const angle = (idx / total) * 2 * Math.PI;
+              const radius = 0.4;
+              const left = 50 + radius * Math.cos(angle) * 100;
+              const top = 50 + radius * Math.sin(angle) * 100;
+
+              return (
+                <div
+                  key={report.reportId || report.id || idx}
+                  className="radar-dot"
+                  style={{
+                    top: `${top}%`,
+                    left: `${left}%`,
+                    backgroundColor: 'var(--sage)'
+                  }}
+                />
+              );
+            });
+          })()}
         </div>
 
         {/* Central Prominent Alert Headline */}
