@@ -308,12 +308,12 @@ async function initDatabase() {
 
         await dbRun(`
           INSERT INTO reports (
-            id, report_id, latitude, longitude, location, fever, headache, rash, 
+            id, report_id, latitude, longitude, location, fever, headache, rash,
             outdoor_exposure, eschar, notes, risk_score, risk_level, created_at
           )
-          SELECT 
-            id, report_id, latitude, longitude, location, fever, headache, rash, 
-            outdoor_exposure, eschar, notes, risk_score, risk_level, created_at 
+          SELECT
+            id, report_id, latitude, longitude, location, fever, headache, rash,
+            outdoor_exposure, eschar, notes, risk_score, risk_level, created_at
           FROM reports_old
         `);
 
@@ -361,43 +361,9 @@ async function initDatabase() {
 
     console.log('[DB] Schema verified and indexes active.');
 
-    // Check if demo records exist
+    // Just log the current count, no seeding, no deletion
     const countRow = await dbGet(`SELECT COUNT(*) as count FROM reports`);
-    if (countRow.count === 0) {
-      console.log('[DB] Empty reports table detected. Seeding initial demo records...');
-      const insertStmt = `
-        INSERT INTO reports (
-          report_id, latitude, longitude, location, state, district, village, landmark, location_precision,
-          fever, headache, rash, outdoor_exposure, eschar, notes, risk_score, risk_level, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-
-      for (const report of DEMO_REPORTS) {
-        await dbRun(insertStmt, [
-          report.report_id,
-          report.latitude,
-          report.longitude,
-          report.location,
-          report.state || null,
-          report.district || null,
-          report.village || null,
-          report.landmark || null,
-          report.location_precision || 'gps',
-          report.fever,
-          report.headache,
-          report.rash,
-          report.outdoor_exposure,
-          report.eschar,
-          report.notes,
-          report.risk_score,
-          report.risk_level,
-          report.created_at
-        ]);
-      }
-      console.log(`[DB] Successfully seeded ${DEMO_REPORTS.length} demonstration records.`);
-    } else {
-      console.log(`[DB] Database contains ${countRow.count} existing reports.`);
-    }
+    console.log(`[DB] Database contains ${countRow.count} existing reports.`);
   } catch (err) {
     console.error('[DB Init Error]', err);
   }

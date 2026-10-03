@@ -42,13 +42,41 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Request logging middleware
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 5;
+
+// Request logging middleware with rate limiting for POST /api/reports
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
     console.log(`[HTTP] ${req.method} ${req.originalUrl} -> ${res.statusCode} (${duration}ms)`);
   });
+
+  // Rate limiting for POST /api/reports
+  if (req.method === 'POST' && req.path === '/api/reports') {
+    const ip = req.ip || req.connection.remoteAddress;
+    if (!ip) return next();
+
+    const now = Date.now();
+    const windowStart = now - RATE_LIMIT_WINDOW_MS;
+
+    // Get timestamps for this IP
+    const timestamps = rateLimitMap.get(ip) || [];
+    // Remove timestamps outside the window
+    const validTimestamps = timestamps.filter(t => t > windowStart);
+    if (validTimestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
+      return res.status(429).json({
+        success: false,
+        error: 'Too many requests, please try again later.'
+      });
+    }
+
+    // Add current timestamp
+    validTimestamps.push(now);
+    rateLimitMap.set(ip, validTimestamps);
+  }
   next();
 });
 
@@ -123,6 +151,26 @@ app.post('/api/reports', async (req, res) => {
       notes
     } = req.body;
 
+    // Validate required symptom fields (must be present and be boolean or 0/1)
+    const symptomFields = ['fever', 'headache', 'rash', 'outdoor_exposure', 'outdoorExposure', 'eschar'];
+    for (const field of symptomFields) {
+      const value = req.body[field];
+      if (value === undefined || value === null) {
+        return res.status(400).json({
+          success: false,
+          error: `Missing required symptom: ${field}`
+        });
+      }
+      // Normalize to boolean: accept true/false, 1/0, "1"/"0"
+      const normalized = value === true || value === 1 || value === '1' || value === 'true';
+      if (!(value === false || value === 0 || value === '0' || value === 'false' || normalized)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid value for ${field}: must be boolean or 0/1`
+        });
+      }
+    }
+
     // Build location string from structured or raw input
     const locParts = [village, landmark, district, state]
       .filter(p => p && typeof p === 'string' && p.trim())
@@ -153,14 +201,22 @@ app.post('/api/reports', async (req, res) => {
         finalLat = parsedLat;
         finalLng = parsedLng;
         locationPrecision = 'gps';
+      } else {
+        // If coordinates provided but invalid, return error
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid GPS coordinates: latitude must be between -90 and 90, longitude between -180 and 180'
+        });
       }
     }
 
-    const normFever = fever ? 1 : 0;
-    const normHeadache = headache ? 1 : 0;
-    const normRash = rash ? 1 : 0;
-    const normOutdoor = (outdoor_exposure || outdoorExposure) ? 1 : 0;
-    const normEschar = eschar ? 1 : 0;
+    // Normalize symptoms to 0/1 integers
+    const normFever = fever === true || fever === 1 || fever === '1' || fever === 'true' ? 1 : 0;
+    const normHeadache = headache === true || headache === 1 || headache === '1' || headache === 'true' ? 1 : 0;
+    const normRash = rash === true || rash === 1 || rash === '1' || rash === 'true' ? 1 : 0;
+    const normOutdoor = (outdoor_exposure === true || outdoor_exposure === 1 || outdoor_exposure === '1' || outdoor_exposure === 'true' ||
+                        outdoorExposure === true || outdoorExposure === 1 || outdoorExposure === '1' || outdoorExposure === 'true') ? 1 : 0;
+    const normEschar = eschar === true || eschar === 1 || eschar === '1' || eschar === 'true' ? 1 : 0;
 
     // Calculate risk score automatically via Risk Engine
     const riskAssessment = calculateRisk({
@@ -170,6 +226,21 @@ app.post('/api/reports', async (req, res) => {
       outdoor_exposure: normOutdoor,
       eschar: normEschar
     });
+
+    // Defensive validation of calculated risk score and risk level
+    if (typeof riskAssessment.score !== 'number' || !isFinite(riskAssessment.score) || riskAssessment.score < 0 || riskAssessment.score > 10) {
+      return res.status(500).json({
+        success: false,
+        error: 'Risk calculation produced invalid score'
+      });
+    }
+    const validRiskLevels = ['LOW', 'MODERATE', 'HIGH'];
+    if (!validRiskLevels.includes(riskAssessment.riskLevel)) {
+      return res.status(500).json({
+        success: false,
+        error: 'Risk calculation produced invalid risk level'
+      });
+    }
 
     // Generate readable Report ID
     const countResult = await dbGet(`SELECT COUNT(*) as total FROM reports`);
