@@ -33,7 +33,7 @@ export default function RiskMapView({ radarData, lang }) {
 
   useEffect(() => {
     fetchHotspots();
-  }, []);
+  }, [radarData]);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
