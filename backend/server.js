@@ -9,6 +9,7 @@ const cors = require('cors');
 const { dbRun, dbGet, dbAll } = require('./db');
 const { calculateRisk } = require('./riskEngine');
 const { analyzeCommunityClusters } = require('./clusterRadar');
+const { geocodeAreaLocation } = require('./geocoder');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -210,6 +211,18 @@ app.post('/api/reports', async (req, res) => {
       }
     }
 
+    // Approximate area coordinates when GPS was not provided (never blocks submission)
+    if (finalLat === null && finalLng === null && finalLocation) {
+      const geocoded = await geocodeAreaLocation(finalLocation);
+      if (geocoded) {
+        finalLat = geocoded.latitude;
+        finalLng = geocoded.longitude;
+        console.log(
+          `[Geocoder] Approximate area coords for "${finalLocation}": ${finalLat}, ${finalLng}`
+        );
+      }
+    }
+
     // Normalize symptoms to 0/1 integers
     const normFever = fever === true || fever === 1 || fever === '1' || fever === 'true' ? 1 : 0;
     const normHeadache = headache === true || headache === 1 || headache === '1' || headache === 'true' ? 1 : 0;
@@ -363,7 +376,7 @@ app.get('/api/reports', async (req, res) => {
 /**
  * GET /api/hotspots
  * Returns geo-located data points formatted for interactive Leaflet Map
- * Only returns reports with valid numeric GPS coordinates.
+ * Returns reports with valid map coordinates (GPS or geocoded approximate area).
  */
 app.get('/api/hotspots', async (req, res) => {
   try {
@@ -379,6 +392,7 @@ app.get('/api/hotspots', async (req, res) => {
       location: r.location,
       latitude: r.latitude,
       longitude: r.longitude,
+      locationPrecision: r.location_precision || (r.latitude !== null ? 'gps' : 'area'),
       riskLevel: r.risk_level,
       riskScore: r.risk_score,
       symptoms: [

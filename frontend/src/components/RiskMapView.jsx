@@ -113,8 +113,11 @@ export default function RiskMapView({ radarData, lang }) {
     const bounds = [];
 
     filtered.forEach((spot) => {
-      const lat = spot.latitude;
-      const lng = spot.longitude;
+      const lat = Number(spot.latitude);
+      const lng = Number(spot.longitude);
+      if (isNaN(lat) || isNaN(lng)) return;
+
+      const isAreaReport = spot.locationPrecision === 'area';
       bounds.push([lat, lng]);
 
       let colorClass = 'low';
@@ -131,11 +134,12 @@ export default function RiskMapView({ radarData, lang }) {
         label = 'M';
       }
 
+      const pinExtraClass = isAreaReport ? ' area-pin' : '';
       const icon = L.divIcon({
         className: 'custom-leaflet-icon',
-        html: `<div class="map-marker-pin ${colorClass}" style="box-shadow: 0 0 6px ${pinColor};">${label}</div>`,
-        iconSize: [22, 22],
-        iconAnchor: [11, 11]
+        html: `<div class="map-marker-pin ${colorClass}${pinExtraClass}" style="box-shadow: 0 0 6px ${pinColor};">${label}</div>`,
+        iconSize: isAreaReport ? [26, 26] : [22, 22],
+        iconAnchor: isAreaReport ? [13, 13] : [11, 11]
       });
 
       const marker = L.marker([lat, lng], { icon });
@@ -144,8 +148,15 @@ export default function RiskMapView({ radarData, lang }) {
         ? spot.symptoms.map(s => `<span style="display:inline-block; font-size:10px; background:#f5f2eb; padding:2px 6px; border-radius:4px; margin-right:4px; margin-bottom:2px; font-weight:600;">${s}</span>`).join('')
         : '';
 
+      const areaBanner = isAreaReport
+        ? `<div style="font-size: 10px; font-weight: 700; color: #5e6368; background: #f0f4f8; border: 1px dashed #9aa0a6; padding: 4px 6px; border-radius: 4px; margin-bottom: 6px;">
+            ${lang === 'ta' ? 'தோராயமான பகுதி' : 'Approximate area'}
+          </div>`
+        : '';
+
       const popupContent = `
         <div style="font-family: inherit; min-width: 210px; padding: 2px;">
+          ${areaBanner}
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
             <strong style="color: #4a90e2; font-family: monospace; font-size: 12px;">${spot.reportId}</strong>
             <span style="font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 9999px; background: ${pinColor}20; color: ${pinColor};">

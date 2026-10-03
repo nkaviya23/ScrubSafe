@@ -34,15 +34,19 @@ function analyzeCommunityClusters(allReports = [], options = {}) {
   const userLat = options.userLat !== undefined && options.userLat !== null && !isNaN(options.userLat) ? Number(options.userLat) : null;
   const userLng = options.userLng !== undefined && options.userLng !== null && !isNaN(options.userLng) ? Number(options.userLng) : null;
 
-  // Filter for reports with valid numeric GPS coordinates
-  const gpsReports = allReports.filter(r => 
-    r.latitude !== null && 
-    r.latitude !== undefined && 
-    r.longitude !== null && 
-    r.longitude !== undefined && 
-    !isNaN(Number(r.latitude)) && 
-    !isNaN(Number(r.longitude))
-  );
+  // Filter for reports with valid numeric coordinates from device GPS only
+  const gpsReports = allReports.filter(r => {
+    const precision = r.location_precision || (r.latitude !== null && r.latitude !== undefined ? 'gps' : 'area');
+    if (precision !== 'gps') return false;
+    return (
+      r.latitude !== null &&
+      r.latitude !== undefined &&
+      r.longitude !== null &&
+      r.longitude !== undefined &&
+      !isNaN(Number(r.latitude)) &&
+      !isNaN(Number(r.longitude))
+    );
+  });
 
   if (gpsReports.length === 0) {
     return {

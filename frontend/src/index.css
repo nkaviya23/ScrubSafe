@@ -736,6 +736,12 @@ body {
 .map-marker-pin.mod { background-color: var(--yellow-warm); }
 .map-marker-pin.low { background-color: var(--sage); }
 
+.map-marker-pin.area-pin {
+  border-radius: 4px;
+  border: 2px dashed #ffffff;
+  opacity: 0.92;
+}
+
 /* Tables */
 .custom-table {
   width: 100%;
