@@ -93,6 +93,7 @@ export default function ReportCaseView({ initialSymptoms, onReportSuccess, setAc
         headache: formData.headache,
         rash: formData.rash,
         outdoor_exposure: formData.outdoor_exposure,
+        outdoorExposure: formData.outdoor_exposure,
         eschar: formData.eschar,
         notes: formData.notes.trim()
       };
